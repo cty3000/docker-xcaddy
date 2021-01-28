@@ -1,0 +1,47 @@
+# See: https://gitlab.com/cty3000/docker-xcaddy/-/ci/lint
+
+#image: docker:stable
+image: docker:18.09.7
+
+services:
+#    - name: docker:dind
+    - name: docker:18.09.7-dind
+
+variables:
+  IMAGE_NAME: xcaddy
+  LOCAL_HOST: localhost
+  CONTAINER_REGISTRY: registry.gitlab.com
+  CONTAINER_IMAGE: registry.gitlab.com/$CI_PROJECT_PATH
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_DRIVER: overlay2
+
+before_script:
+  - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin registry.gitlab.com
+
+build:
+  stage: build
+  script:
+    - docker pull $CONTAINER_IMAGE:latest || true
+    # Edit the next line for each container image
+    - docker build --cache-from $CONTAINER_IMAGE:latest --tag $CONTAINER_IMAGE:$CI_COMMIT_SHA .
+    - docker push $CONTAINER_IMAGE:$CI_COMMIT_SHA
+
+test:
+  stage: test
+  script:
+    - docker pull $CONTAINER_IMAGE:$CI_COMMIT_SHA
+    # Edit the next line for each container image
+    - docker run -dit -p 8080:8080 --name $IMAGE_NAME $CONTAINER_IMAGE:$CI_COMMIT_SHA
+    - sleep 3
+    - docker logs $IMAGE_NAME || true
+    - docker ps --filter "name=$IMAGE_NAME" -a | grep "Up"
+
+deploy:
+  stage: deploy
+  script:
+    - export TAG="$(uname -s)_$(uname -m)_$(date +"%Y%m%d%H%M%S")"
+    - docker pull $CONTAINER_IMAGE:$CI_COMMIT_SHA
+    - docker tag $CONTAINER_IMAGE:$CI_COMMIT_SHA $CONTAINER_IMAGE:$TAG
+    - docker tag $CONTAINER_IMAGE:$CI_COMMIT_SHA $CONTAINER_IMAGE:latest
+    - docker push $CONTAINER_IMAGE:$TAG
+    - docker push $CONTAINER_IMAGE:latest
