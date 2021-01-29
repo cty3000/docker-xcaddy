@@ -22,6 +22,7 @@ build:
   before_script:
 
 
+
   script:
     - docker pull $CONTAINER_IMAGE:latest || true
     # Edit the next line for each container image
@@ -37,6 +38,10 @@ test:
     - sleep 3
     - docker logs $IMAGE_NAME || true
     - docker ps --filter "name=$IMAGE_NAME" -a | grep "Up"
+
+
+
+
 
 deploy:
   stage: deploy
