@@ -19,3 +19,9 @@ RUN go get -u github.com/caddyserver/xcaddy/cmd/xcaddy
 RUN xcaddy build --with github.com/greenpau/caddy-auth-portal --with github.com/greenpau/caddy-auth-jwt
 
 RUN mkdir -p /app && cp caddy /app/
+
+FROM alpine:3.12.0 AS alpine
+
+WORKDIR /app
+
+COPY --from=golang /app/caddy /app/
