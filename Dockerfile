@@ -1,27 +1,24 @@
 # note: never use the :latest tag in a production site
-FROM golang:1.15.5-alpine AS golang
+FROM golang:1.16-alpine AS builder
 
-RUN grep 'v[0-9]*.[0-9]*' /etc/apk/repositories
-
-RUN sed -e 's/v[0-9]*.[0-9]*/v3.11/g' -i /etc/apk/repositories && cat /etc/apk/repositories
-
-RUN set -eux \
-    && apk --no-cache add --virtual build-dependencies upx cmake g++ make unzip curl git tzdata
-
-RUN cp /usr/share/zoneinfo/Japan /etc/localtime
-
-ENV APP_NAME caddy
+ARG VERSION
+ARG CADDY_AUTH_PORTAL_VERSION=v1.4.23
+ARG CADDY_AUTH_JWT_VERSION=v1.3.16
+ARG APP_NAME=caddy
 
 WORKDIR ${GOPATH}/src/${APP_NAME}
 
-RUN go get -u github.com/caddyserver/xcaddy/cmd/xcaddy
+RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@${VERSION}
 
-RUN xcaddy build --with github.com/greenpau/caddy-auth-portal --with github.com/greenpau/caddy-auth-jwt
+RUN xcaddy build \
+  --with github.com/greenpau/caddy-auth-portal@${CADDY_AUTH_PORTAL_VERSION} \
+  --with github.com/greenpau/caddy-auth-jwt@${CADDY_AUTH_JWT_VERSION}
 
-RUN mkdir -p /app && cp caddy /app/
+RUN mkdir -p /app
+RUN cp caddy /app/
 
-FROM alpine:3.12.0 AS alpine
+FROM alpine:3.14
 
 WORKDIR /app
 
-COPY --from=golang /app/caddy /app/
+COPY --from=builder /app/caddy /app/

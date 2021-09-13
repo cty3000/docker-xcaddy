@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+
+  # See: https://gitlab.com/cty3000/docker-xcaddy
+  xcaddy:
+    image: ${CONTAINER_IMAGE?err}:test_${ARCH?err}
+    restart: unless-stopped
+    ports:
+      - target: 8080
+        published: 8080
+        protocol: tcp
+        mode: host

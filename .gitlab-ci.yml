@@ -1,11 +1,8 @@
 # See: https://gitlab.com/cty3000/docker-xcaddy/-/ci/lint
-
-#image: docker:stable
-image: docker:18.09.7
+image: docker:stable
 
 services:
-#    - name: docker:dind
-    - name: docker:18.09.7-dind
+  - name: docker:dind
 
 variables:
   IMAGE_NAME: xcaddy
@@ -13,42 +10,99 @@ variables:
   CONTAINER_IMAGE: $CI_REGISTRY/$CI_PROJECT_PATH
   DOCKER_HOST: tcp://docker:2375
   DOCKER_DRIVER: overlay2
+  BUILDX_VERSION: "v0.6.1"
+  BUILDX_ARCH: "linux-amd64"
+  VERSION: v1.0.0
 
-before_script:
-  - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin registry.gitlab.com
+stages:
+  - build
+  - test
+  - deploy
 
-build:
+build_linux_amd64:
   stage: build
+  variables:
+    ARCH: linux_amd64
+    PLATFORM: linux/amd64
   before_script:
-
-
-
+    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin registry.gitlab.com
+    - wget -O /usr/bin/docker-buildx
+      https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.${BUILDX_ARCH}
+    - chmod +x /usr/bin/docker-buildx
   script:
-    - docker pull $CONTAINER_IMAGE:latest || true
-    # Edit the next line for each container image
-    - docker build --cache-from $CONTAINER_IMAGE:latest --tag $CONTAINER_IMAGE:$CI_COMMIT_SHA .
-    - docker push $CONTAINER_IMAGE:$CI_COMMIT_SHA
+    - docker pull $CONTAINER_IMAGE:latest_${ARCH} || true
+    - docker-buildx create --use
+    - docker-buildx build
+      --platform ${PLATFORM}
+      --build-arg VERSION=${VERSION}
+      --cache-from $CONTAINER_IMAGE:test_${ARCH}
+      --cache-from $CONTAINER_IMAGE:latest_${ARCH}
+      --tag $CONTAINER_IMAGE:test_${ARCH}
+      --push
+      .
+
+build_linux_arm_v7:
+  stage: build
+  variables:
+    ARCH: linux_arm_v7
+    PLATFORM: linux/arm/v7
+  before_script:
+    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin registry.gitlab.com
+    - wget -O /usr/bin/docker-buildx
+      https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.${BUILDX_ARCH}
+    - chmod +x /usr/bin/docker-buildx
+  script:
+    - docker pull $CONTAINER_IMAGE:latest_${ARCH} || true
+    - docker-buildx create --use
+    - docker-buildx build
+      --platform ${PLATFORM}
+      --build-arg VERSION=${VERSION}
+      --cache-from $CONTAINER_IMAGE:test_${ARCH}
+      --cache-from $CONTAINER_IMAGE:latest_${ARCH}
+      --tag $CONTAINER_IMAGE:test_${ARCH}
+      --push
+      .
 
 test:
   stage: test
+  variables:
+    ARCH: linux_amd64
+    PLATFORM: linux/amd64
+  before_script:
+    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin registry.gitlab.com
+    - mkdir -p ~/.docker/cli-plugins/
+    - wget -O ~/.docker/cli-plugins/docker-compose https://github.com/docker/compose-cli/releases/download/v2.0.0-rc.1/docker-compose-linux-amd64
+    - chmod +x ~/.docker/cli-plugins/docker-compose
   script:
-    - docker pull $CONTAINER_IMAGE:$CI_COMMIT_SHA
-    # Edit the next line for each container image
-    - docker run -dit -p 8080:8080 --name $IMAGE_NAME $CONTAINER_IMAGE:$CI_COMMIT_SHA
+    - docker compose -p test -f tests/docker-compose.yml up -d
     - sleep 3
-    - docker logs $IMAGE_NAME || true
-    - docker ps --filter "name=$IMAGE_NAME" -a | grep "Up"
+    - docker logs test_${IMAGE_NAME}_1 || true
+    - docker ps --filter "name=test_${IMAGE_NAME}_1" -a | grep "Up"
 
-
-
-
-
-deploy:
+deploy_linux_amd64:
   stage: deploy
+  variables:
+    ARCH: linux_amd64
+    PLATFORM: linux/amd64
+  before_script:
+    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin registry.gitlab.com
   script:
-    - export TAG="$(uname -s)_$(uname -m)_$(date +"%Y%m%d%H%M%S")"
-    - docker pull $CONTAINER_IMAGE:$CI_COMMIT_SHA
-    - docker tag $CONTAINER_IMAGE:$CI_COMMIT_SHA $CONTAINER_IMAGE:$TAG
-    - docker tag $CONTAINER_IMAGE:$CI_COMMIT_SHA $CONTAINER_IMAGE:latest
-    - docker push $CONTAINER_IMAGE:$TAG
-    - docker push $CONTAINER_IMAGE:latest
+    - docker pull $CONTAINER_IMAGE:test_${ARCH}
+    - docker tag $CONTAINER_IMAGE:test_${ARCH} $CONTAINER_IMAGE:${VERSION}_${ARCH}
+    - docker tag $CONTAINER_IMAGE:test_${ARCH} $CONTAINER_IMAGE:latest_${ARCH}
+    - docker push $CONTAINER_IMAGE:${VERSION}_${ARCH}
+    - docker push $CONTAINER_IMAGE:latest_${ARCH}
+
+deploy_linux_arm_v7:
+  stage: deploy
+  variables:
+    ARCH: linux_arm_v7
+    PLATFORM: linux/arm/v7
+  before_script:
+    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin registry.gitlab.com
+  script:
+    - docker pull $CONTAINER_IMAGE:test_${ARCH}
+    - docker tag $CONTAINER_IMAGE:test_${ARCH} $CONTAINER_IMAGE:${VERSION}_${ARCH}
+    - docker tag $CONTAINER_IMAGE:test_${ARCH} $CONTAINER_IMAGE:latest_${ARCH}
+    - docker push $CONTAINER_IMAGE:${VERSION}_${ARCH}
+    - docker push $CONTAINER_IMAGE:latest_${ARCH}
