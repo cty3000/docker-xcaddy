@@ -8,6 +8,11 @@ ARG APP_NAME=caddy
 
 WORKDIR ${GOPATH}/src/${APP_NAME}
 
+RUN set -eux \
+    && apk --no-cache add --virtual build-dependencies upx cmake g++ make unzip curl git tzdata
+
+RUN cp /usr/share/zoneinfo/Japan /etc/localtime
+
 RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@${VERSION}
 
 RUN xcaddy build \
