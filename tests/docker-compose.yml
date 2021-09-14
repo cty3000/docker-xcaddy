@@ -11,3 +11,5 @@ services:
         published: 8080
         protocol: tcp
         mode: host
+    entrypoint: /app/caddy
+    command: run
