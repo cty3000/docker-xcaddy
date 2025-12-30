@@ -62,7 +62,7 @@ jobs:
           XCADDY=$(curl -s https://api.github.com/repos/caddyserver/xcaddy/releases/latest | jq -r .tag_name)
           SECURITY=$(curl -s https://api.github.com/repos/greenpau/caddy-security/releases/latest | jq -r .tag_name)
           TRACE=$(curl -s https://api.github.com/repos/greenpau/caddy-trace/releases/latest | jq -r .tag_name)
-          EXEC=$(curl -s https://api.github.com/repos/abiosoft/caddy-exec/releases/latest | jq -r .tag_name)
+          EXEC=$(curl -s https://api.github.com/repos/abiosoft/caddy-exec/commits/master | jq -r .sha)
           
           # Create a single string for comparison
           COMBINED_HASH=$(echo "$XCADDY-$SECURITY-$TRACE-$EXEC" | sha256sum | cut -d' ' -f1)
