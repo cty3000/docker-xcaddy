@@ -32,7 +32,7 @@ jobs:
     permissions:
       actions: none
       checks: none
-      contents: read
+      contents: write
       deployments: none
       issues: none
       discussions: none
