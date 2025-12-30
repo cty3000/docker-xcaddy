@@ -20,6 +20,7 @@ env:
   # Define repositories from your Dockerfile requirements 
   TRACKING_GIT_REPOS: |
     XCADDY:caddyserver/xcaddy
+    CADDY:caddyserver/caddy
     SECURITY:greenpau/caddy-security
     TRACE:greenpau/caddy-trace
     EXEC:abiosoft/caddy-exec
@@ -78,6 +79,7 @@ jobs:
         run: |
           # Fetch latest tags for all components 
           XCADDY=$(curl -s https://api.github.com/repos/caddyserver/xcaddy/releases/latest | jq -r .tag_name)
+          CADDY=$(curl -s https://api.github.com/repos/caddyserver/caddy/releases/latest | jq -r .tag_name)
           SECURITY=$(curl -s https://api.github.com/repos/greenpau/caddy-security/releases/latest | jq -r .tag_name)
           TRACE=$(curl -s https://api.github.com/repos/greenpau/caddy-trace/releases/latest | jq -r .tag_name)
           EXEC=$(curl -s https://api.github.com/repos/abiosoft/caddy-exec/commits/master | jq -r .sha)
@@ -86,6 +88,7 @@ jobs:
           COMBINED_HASH=$(echo "$XCADDY-$SECURITY-$TRACE-$EXEC" | sha256sum | cut -d' ' -f1)
           
           echo "xcaddy=$XCADDY" >> $GITHUB_OUTPUT
+          echo "caddy=$CADDY" >> $GITHUB_OUTPUT
           echo "security=$SECURITY" >> $GITHUB_OUTPUT
           echo "trace=$TRACE" >> $GITHUB_OUTPUT
           echo "exec=$EXEC" >> $GITHUB_OUTPUT
@@ -185,6 +188,7 @@ jobs:
           platforms: ${{ env.DOCKER_TAEGET_PLATFORMS }}
           build-args: |
             VERSION=${{ steps.fetch.outputs.xcaddy }}
+            CADDY_VERSION=${{ steps.fetch.outputs.caddy }}
             CADDY_SECURITY_VERSION=${{ steps.fetch.outputs.security }}
             CADDY_TRACE_VERSION=${{ steps.fetch.outputs.trace }}
             CADDY_EXEC_VERSION=${{ steps.fetch.outputs.exec }}

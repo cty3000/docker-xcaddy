@@ -1,0 +1,82 @@
+{
+    ${DEBUG}
+    admin 0.0.0.0:2019
+    auto_https off
+    http_port ${HTTP_PORT}
+}
+
+:${HTTP_PORT} {
+    log {
+        output ${LOG_OUTPUT}
+        format ${LOG_FORMAT}
+        level ${LOG_LEVEL}
+    }
+
+    route /version* {
+        respond * "${VERSION}" 200
+    }
+
+    route /status {
+        respond * "OK" 200
+    }
+
+    templates
+    encode gzip
+
+    route ${HTML_URL_PATH}* {
+        # https://caddyserver.com/docs/caddyfile/matchers#path-regexp
+        @html path_regexp mdregex ^(${HTML_URL_PATH}(.*)\.(?:html))$
+        redir @html ${DOCS_URL_PATH}
+    }
+
+    route /test* {
+        try_files {path}.md {path}
+    
+        @docdir path_regexp docdirregex ^((/test(?:/ja|/en)?)/?)$
+        redir @docdir {http.regexp.docdirregex.2}/README.md
+
+        @markdown path_regexp mdregex ^(.+\.(?:md))$
+        rewrite @markdown ${HTML_URL_PATH}/test.html
+    }
+
+    route ${DOCS_URL_PATH}* {
+        try_files {path}.md {path}
+    
+        @docdir path_regexp docdirregex ^((${DOCS_URL_PATH}(?:/ja|/en)?)/?)$
+        redir @docdir {http.regexp.docdirregex.2}/README.md
+
+        @markdown path_regexp mdregex ^(.+\.(?:md))$
+        rewrite @markdown ${HTML_URL_PATH}/markdown.html
+    }
+
+    route ${LITERATURE_URL_PATH}* {
+        @readerassets {
+            path_regexp readerassetsregex ^(${LITERATURE_URL_PATH}/(.+/)*((?:code/|images/).+\.(?:png|svg|js|css)))$
+        }
+        rewrite @readerassets ${READER_URL_PATH}/{http.regexp.readerassetsregex.3}
+
+        @reader {
+            path_regexp readerregex ^(${LITERATURE_URL_PATH}/((.+/)*.+\.(?:cbz|cbr|cbt|zip|rar|tar)))$
+            not header X-Avalon-JavaScript true
+        }
+        rewrite @reader ${READER_URL_PATH}/index.html
+    }
+    
+    @top path /
+    redir @top ${DOCS_URL_PATH}
+
+    # https://caddyserver.com/docs/caddyfile/directives/file_server
+    file_server {
+        root ${ROOT_PATH}
+        hide ${HIDDEN_FILES}
+        index ${INDEX_FILES}
+        browse ${TEMPLATE_FILES} 
+    }
+
+    # https://caddyserver.com/docs/caddyfile/directives/handle_errors
+    handle_errors {
+        # https://caddyserver.com/docs/caddyfile/directives/header
+        header Content-Type "text/html; charset=utf-8"
+        respond * "Not found ~\_(ツ)_/~" 404
+    }
+}
