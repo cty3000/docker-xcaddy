@@ -86,6 +86,7 @@ ENV CADDYFILE_TEMPLATE_PATH=/etc/caddy/Caddyfile.file_server.template
 ENV CADDYFILE_PATH=/etc/caddy/Caddyfile
 ENV DEBUG=debug
 ENV HTTP_PORT=8080
+ENV ADMIN_PORT=2019
 ENV LOG_OUTPUT=stderr
 ENV LOG_FORMAT=console
 ENV LOG_LEVEL=DEBUG

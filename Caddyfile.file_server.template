@@ -1,6 +1,6 @@
 {
     ${DEBUG}
-    admin 0.0.0.0:2019
+    admin 0.0.0.0:${ADMIN_PORT}
     auto_https off
     http_port ${HTTP_PORT}
 }

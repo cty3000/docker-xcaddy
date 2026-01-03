@@ -3,6 +3,7 @@
 envsubst '\
     $$DEBUG \
     $$HTTP_PORT \
+    $$ADMIN_PORT \
     $$VERSION \
     $$LOG_OUTPUT \
     $$LOG_FORMAT \
