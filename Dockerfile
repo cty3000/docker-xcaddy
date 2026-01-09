@@ -61,7 +61,7 @@ ENV CADDY_TRACE_VERSION=${CADDY_TRACE_VERSION}
 ENV CADDY_EXEC_VERSION=${CADDY_EXEC_VERSION}
 ENV APP_NAME=${APP_NAME}
 
-RUN apk add --no-cache curl gettext
+RUN apk add --no-cache curl gettext tini
 
 RUN mkdir -p /etc/caddy/certs
 RUN mkdir -p /etc/caddy/auth
@@ -107,4 +107,5 @@ ENV LITERATURE_URL_PATH=/literature
 # --retries=N (default: 3)
 HEALTHCHECK --interval=3s --timeout=3s CMD (stat /etc/caddy/Caddyfile) || exit 1
 
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["/app/entrypoint.sh"]
